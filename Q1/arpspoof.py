@@ -20,7 +20,7 @@ EXPECTED_ARGUMENT_COUNT = 3
 def get_mac(ip):
     broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
     arp_ip = ARP(pdst=ip)
-    answered, _ = srp(arp_ip/broadcast, timeout=1, verbose=False)
+    answered, _ = srp(broadcast/arp_ip, timeout=1, verbose=0)
     if not answered:
         raise Exception(f"IP {ip} does not exists!")
     # answered[0] -> first found (sent, received) pair, and answered[0][1] is the received (who responded)
