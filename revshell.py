@@ -33,7 +33,9 @@ def client_run():
     while True:
         cmd = receive()
         if cmd:
+            print(f"Received: {cmd}")
             result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+            print(f"Result: {result}")
             send(result)
         if KeyboardInterrupt:
             connection.close()
