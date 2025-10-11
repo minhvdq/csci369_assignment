@@ -34,7 +34,7 @@ def client_run():
         cmd = receive()
         if cmd:
             print(f"Received: {cmd}")
-            result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True).stdout
             print(f"Result: {result}")
             send(result)
         if KeyboardInterrupt:
