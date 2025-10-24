@@ -19,7 +19,8 @@ def bruteforce_ssh(target, username,  pwds):
         except Exception as e:
             cnt += 1
             continue
-        print(f"You have successfully connected to {target} at {cnt} attempts!")
+        print(f"You have successfully connected to {target}!")
+        print(f"Password is: {pwd}")
         return
     raise Exception(f"No invalid password for {target}!!!")
 
